@@ -3,6 +3,12 @@ name = "whatsapp-cloud-api-py"
 version = "0.1.0"
 description = "Async Python SDK for WhatsApp Business Cloud API with Pydantic V2"
 requires-python = ">=3.11"
+license = "MIT"
+
+[project.urls]
+Homepage = "https://github.com/HeiCg/whatsapp-cloud-api-py"
+Repository = "https://github.com/HeiCg/whatsapp-cloud-api-py"
+Issues = "https://github.com/HeiCg/whatsapp-cloud-api-py/issues"
 dependencies = [
     "httpx[http2]>=0.27",
     "pydantic>=2.7",
