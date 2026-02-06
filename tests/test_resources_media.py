@@ -8,7 +8,7 @@ import respx
 from whatsapp_cloud_api.client import WhatsAppClient
 from whatsapp_cloud_api.resources.media import MediaResource, MediaUploadInput
 
-BASE = "https://graph.facebook.com/v23.0"
+BASE = "https://api.kapso.ai/meta/whatsapp/v23.0"
 
 
 class TestUpload:

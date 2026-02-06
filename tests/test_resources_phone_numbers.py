@@ -17,7 +17,7 @@ from whatsapp_cloud_api.resources.phone_numbers import (
     VerifyCodeInput,
 )
 
-BASE = "https://graph.facebook.com/v23.0"
+BASE = "https://api.kapso.ai/meta/whatsapp/v23.0"
 PHONE = "1234567890"
 
 

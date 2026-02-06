@@ -14,7 +14,7 @@ from whatsapp_cloud_api.resources.flows import (
     UpdateFlowAssetInput,
 )
 
-BASE = "https://graph.facebook.com/v23.0"
+BASE = "https://api.kapso.ai/meta/whatsapp/v23.0"
 WABA = "waba123"
 
 

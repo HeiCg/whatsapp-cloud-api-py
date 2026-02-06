@@ -9,7 +9,7 @@ import respx
 from whatsapp_cloud_api.client import WhatsAppClient
 from whatsapp_cloud_api.errors import GraphApiError
 
-BASE = "https://graph.facebook.com/v23.0"
+BASE = "https://api.kapso.ai/meta/whatsapp/v23.0"
 
 
 class TestUrl:
@@ -32,7 +32,7 @@ class TestUrl:
 
     def test_custom_version(self):
         client = WhatsAppClient(access_token="tok", graph_version="v22.0")
-        assert client._url("path") == "https://graph.facebook.com/v22.0/path"
+        assert client._url("path") == "https://api.kapso.ai/meta/whatsapp/v22.0/path"
 
 
 class TestRequest:

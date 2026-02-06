@@ -1,10 +1,20 @@
 # whatsapp-cloud-api-py
 
-Community-built async Python SDK for the WhatsApp Business Cloud API.
+Community-built async Python SDK for the WhatsApp Business Cloud API, powered by [Kapso](https://kapso.ai).
 
 > **Note:** This is an **independent Python implementation** — not a port or fork. It was inspired by the excellent [`@kapso/whatsapp-cloud-api`](https://github.com/gokapso/whatsapp-cloud-api-js) (TypeScript), but written from scratch in Python with its own architecture, design choices, and API surface.
 
 Built with **httpx** (HTTP/2 + connection pooling), **Pydantic V2** (Rust-powered validation), and optional **pyventus** event-driven webhooks.
+
+## Prerequisites
+
+This SDK connects to Meta's WhatsApp Cloud API through [Kapso's](https://kapso.ai) managed proxy. You'll need a **Kapso API key** before getting started:
+
+1. Create an account at [kapso.ai](https://kapso.ai)
+2. Connect your WhatsApp Business account
+3. Generate an API key from the dashboard
+
+See the [Kapso docs](https://docs.kapso.ai/docs/introduction) for detailed setup instructions.
 
 ## Features
 
@@ -43,7 +53,7 @@ import asyncio
 from whatsapp_cloud_api import WhatsAppClient, TextMessage
 
 async def main():
-    async with WhatsAppClient(access_token="YOUR_TOKEN") as client:
+    async with WhatsAppClient(access_token="YOUR_KAPSO_API_KEY") as client:
         response = await client.messages.send_text(TextMessage(
             phone_number_id="PHONE_NUMBER_ID",
             to="5511999999999",
@@ -536,24 +546,22 @@ except GraphApiError as e:
 ```python
 from whatsapp_cloud_api import WhatsAppClient
 
-# Default: graph.facebook.com, v23.0, HTTP/2, 30s timeout
-client = WhatsAppClient(access_token="TOKEN")
+# Default: api.kapso.ai, v23.0, HTTP/2, 30s timeout
+client = WhatsAppClient(access_token="YOUR_KAPSO_API_KEY")
 
-# Custom configuration
+# Custom timeout
 client = WhatsAppClient(
-    access_token="TOKEN",
-    base_url="https://graph.facebook.com",
-    graph_version="v23.0",
+    access_token="YOUR_KAPSO_API_KEY",
     timeout=60.0,
 )
 
 # Bring your own httpx client
 import httpx
 custom_http = httpx.AsyncClient(http2=True, timeout=60.0)
-client = WhatsAppClient(access_token="TOKEN", http_client=custom_http)
+client = WhatsAppClient(access_token="YOUR_KAPSO_API_KEY", http_client=custom_http)
 
 # Always use as async context manager
-async with WhatsAppClient(access_token="TOKEN") as client:
+async with WhatsAppClient(access_token="YOUR_KAPSO_API_KEY") as client:
     await client.messages.send_text(...)
 ```
 

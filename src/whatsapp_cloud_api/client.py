@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from .resources.phone_numbers import PhoneNumbersResource
     from .resources.templates.resource import TemplatesResource
 
-_DEFAULT_BASE_URL = "https://graph.facebook.com"
+_DEFAULT_BASE_URL = "https://api.kapso.ai/meta/whatsapp"
 _DEFAULT_VERSION = "v23.0"
 
 
