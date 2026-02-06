@@ -36,13 +36,22 @@ See the [Kapso docs](https://docs.kapso.ai/docs/introduction) for detailed setup
 uv add whatsapp-cloud-api-py
 ```
 
-With extras:
+### Extras
+
+The base package only requires `httpx` and `pydantic`. Optional extras add functionality as needed:
+
+| Extra | Installs | What it enables |
+|---|---|---|
+| `events` | [pyventus](https://pypi.org/project/pyventus/) | Event-driven webhooks — typed event classes (`TextReceived`, `ImageReceived`, etc.) and `dispatch_webhook()` to emit events via pyventus instead of manually parsing payloads |
+| `webhooks` | [starlette](https://pypi.org/project/starlette/) | Starlette integration for webhook endpoints — use `FastAPIEventEmitter` to run event handlers as background tasks |
+| `server` | [cryptography](https://pypi.org/project/cryptography/) | Cryptographic utilities for server-side features like webhook signature verification with HMAC-SHA256 |
 
 ```bash
-# Event-driven webhooks (pyventus)
+# Pick what you need
 uv add "whatsapp-cloud-api-py[events]"
+uv add "whatsapp-cloud-api-py[events,webhooks]"
 
-# All extras
+# Everything
 uv add "whatsapp-cloud-api-py[events,webhooks,server]"
 ```
 
