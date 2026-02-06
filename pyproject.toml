@@ -1,9 +1,10 @@
 [project]
 name = "whatsapp-cloud-api-py"
-version = "0.1.0"
+version = "0.1.1"
 description = "Async Python SDK for WhatsApp Business Cloud API with Pydantic V2"
 requires-python = ">=3.11"
 license = "MIT"
+readme = "README.md"
 dependencies = [
     "httpx[http2]>=0.27",
     "pydantic>=2.7",
