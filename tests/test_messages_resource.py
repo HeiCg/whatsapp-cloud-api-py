@@ -22,7 +22,7 @@ from whatsapp_cloud_api.resources.messages.models import (
 )
 from whatsapp_cloud_api.resources.messages.resource import MessagesResource
 
-BASE = "https://api.kapso.ai/meta/whatsapp/v23.0"
+BASE = "https://api.kapso.ai/meta/whatsapp/v24.0"
 PHONE = "1234567890"
 MSG_URL = f"{BASE}/{PHONE}/messages"
 

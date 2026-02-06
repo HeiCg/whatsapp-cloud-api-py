@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from .resources.templates.resource import TemplatesResource
 
 _DEFAULT_BASE_URL = "https://api.kapso.ai/meta/whatsapp"
-_DEFAULT_VERSION = "v23.0"
+_DEFAULT_VERSION = "v24.0"
 
 
 class WhatsAppClient:
@@ -71,7 +71,7 @@ class WhatsAppClient:
 
     @property
     def _auth_headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self._access_token}"}
+        return {"X-API-Key": self._access_token}
 
     # ── core request ─────────────────────────────────────────────
 

@@ -15,7 +15,7 @@ from whatsapp_cloud_api.resources.templates.models import (
 )
 from whatsapp_cloud_api.resources.templates.resource import TemplatesResource
 
-BASE = "https://api.kapso.ai/meta/whatsapp/v23.0"
+BASE = "https://api.kapso.ai/meta/whatsapp/v24.0"
 WABA = "waba123"
 
 

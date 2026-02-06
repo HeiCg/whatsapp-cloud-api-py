@@ -9,7 +9,7 @@ import respx
 from whatsapp_cloud_api.client import WhatsAppClient
 from whatsapp_cloud_api.errors import GraphApiError
 
-BASE = "https://api.kapso.ai/meta/whatsapp/v23.0"
+BASE = "https://api.kapso.ai/meta/whatsapp/v24.0"
 
 
 class TestUrl:
@@ -28,7 +28,7 @@ class TestUrl:
 
     def test_custom_base_url(self):
         client = WhatsAppClient(access_token="tok", base_url="https://custom.api.com/")
-        assert client._url("path") == "https://custom.api.com/v23.0/path"
+        assert client._url("path") == "https://custom.api.com/v24.0/path"
 
     def test_custom_version(self):
         client = WhatsAppClient(access_token="tok", graph_version="v22.0")
@@ -78,7 +78,7 @@ class TestRequest:
         )
         async with WhatsAppClient(access_token="my-token") as client:
             await client.get("test")
-        assert route.calls[0].request.headers["authorization"] == "Bearer my-token"
+        assert route.calls[0].request.headers["x-api-key"] == "my-token"
 
     @respx.mock
     async def test_post_with_json(self):
@@ -163,7 +163,7 @@ class TestFetchMethods:
         async with WhatsAppClient(access_token="secret-tok") as client:
             resp = await client.fetch_authenticated(url)
         assert resp.content == b"bytes"
-        assert route.calls[0].request.headers["authorization"] == "Bearer secret-tok"
+        assert route.calls[0].request.headers["x-api-key"] == "secret-tok"
 
 
 class TestCachedProperties:

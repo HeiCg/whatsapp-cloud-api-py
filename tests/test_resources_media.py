@@ -8,7 +8,7 @@ import respx
 from whatsapp_cloud_api.client import WhatsAppClient
 from whatsapp_cloud_api.resources.media import MediaResource, MediaUploadInput
 
-BASE = "https://api.kapso.ai/meta/whatsapp/v23.0"
+BASE = "https://api.kapso.ai/meta/whatsapp/v24.0"
 
 
 class TestUpload:
@@ -155,4 +155,4 @@ class TestDownload:
         assert data == b"auth-bytes"
         # With use_auth=True, the first call already has auth headers
         req = cdn_route.calls[0].request
-        assert "Bearer tok" in req.headers.get("authorization", "")
+        assert req.headers.get("x-api-key") == "tok"
