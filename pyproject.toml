@@ -5,6 +5,22 @@ description = "Async Python SDK for WhatsApp Business Cloud API with Pydantic V2
 requires-python = ">=3.11"
 license = "MIT"
 readme = "README.md"
+keywords = ["whatsapp", "whatsapp-cloud-api", "async", "sdk", "pydantic", "kapso"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Framework :: AsyncIO",
+    "Framework :: Pydantic :: 2",
+    "Topic :: Communications :: Chat",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
 dependencies = [
     "httpx[http2]>=0.27",
     "pydantic>=2.7",
