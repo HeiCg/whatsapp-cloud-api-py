@@ -41,3 +41,6 @@ CLAUDE.md
 # Environment variables
 .env
 .env.local
+
+# Guides (contains credentials)
+guide-to-use.md

@@ -83,6 +83,18 @@ class GraphApiError(Exception):
         retry_after_header: str | None = None,
     ) -> GraphApiError:
         err = body.get("error", body)
+
+        # Kapso returns {"error": "string", "next_steps": "..."} instead of
+        # the nested dict that Meta uses: {"error": {"message": ..., "code": ...}}
+        if isinstance(err, str):
+            return cls(
+                message=err,
+                http_status=http_status,
+                details=body.get("next_steps"),
+                retry_after_header=retry_after_header,
+                raw=body,
+            )
+
         return cls(
             message=err.get("message", "Unknown Graph API error"),
             http_status=http_status,
