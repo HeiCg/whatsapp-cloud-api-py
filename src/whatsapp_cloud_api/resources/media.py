@@ -46,24 +46,39 @@ class MediaResource:
         self,
         media_id: str,
         *,
-        use_auth: bool = False,
+        auth: Literal["auto", "never", "always"] = "auto",
+        use_auth: bool | None = None,
     ) -> bytes:
         """Download media by first fetching the URL, then downloading the bytes.
 
         Args:
             media_id: The media ID to download.
-            use_auth: If True, sends auth headers to the CDN. Usually not needed
-                      for WhatsApp's public CDN URLs.
+            auth: Authentication mode for the CDN fetch.
+                - "auto" (default): Try without auth first, retry with auth on 401/403.
+                - "never": Never send auth headers (public CDN downloads).
+                - "always": Always send auth headers.
+            use_auth: Deprecated. Use ``auth="always"`` instead. Kept for
+                backwards compatibility.
         """
+        # Backwards compat: use_auth=True maps to auth="always"
+        if use_auth is not None:
+            auth = "always" if use_auth else "auto"
+
         meta = await self.get(media_id)
-        if use_auth:
-            resp = await self._client.fetch_authenticated(meta.url)
-        else:
+
+        if auth == "never":
             resp = await self._client.fetch_raw(meta.url)
+            resp.raise_for_status()
+            return resp.content
 
-        if resp.status_code == 401 or resp.status_code == 403:
-            # Retry with auth
+        if auth == "always":
             resp = await self._client.fetch_authenticated(meta.url)
+            resp.raise_for_status()
+            return resp.content
 
+        # auth == "auto": try raw, retry with auth on 401/403
+        resp = await self._client.fetch_raw(meta.url)
+        if resp.status_code in (401, 403):
+            resp = await self._client.fetch_authenticated(meta.url)
         resp.raise_for_status()
         return resp.content

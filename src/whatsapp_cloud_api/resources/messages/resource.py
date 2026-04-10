@@ -10,7 +10,9 @@ from .models import (
     ContactsMessage,
     DocumentMessage,
     ImageMessage,
+    InteractiveAddressMessage,
     InteractiveButtonsMessage,
+    InteractiveCallPermissionMessage,
     InteractiveCatalogMessage,
     InteractiveCtaUrlMessage,
     InteractiveFlowMessage,
@@ -20,6 +22,7 @@ from .models import (
     InteractiveProductMessage,
     LocationMessage,
     MarkReadInput,
+    RawMessage,
     ReactionMessage,
     StickerMessage,
     TemplateMessage,
@@ -190,8 +193,7 @@ class MessagesResource:
 
         action = {
             "buttons": [
-                {"type": "reply", "reply": {"id": b.id, "title": b.title}}
-                for b in input.buttons
+                {"type": "reply", "reply": {"id": b.id, "title": b.title}} for b in input.buttons
             ]
         }
         return await self._send_interactive(
@@ -209,9 +211,7 @@ class MessagesResource:
 
     # ── interactive: list ────────────────────────────────────────
 
-    async def send_interactive_list(
-        self, input: InteractiveListMessage
-    ) -> SendMessageResponse:
+    async def send_interactive_list(self, input: InteractiveListMessage) -> SendMessageResponse:
         header = None
         if input.header:
             header = _serialize(input.header)
@@ -266,10 +266,12 @@ class MessagesResource:
     ) -> SendMessageResponse:
         sections = []
         for s in input.sections:
-            sections.append({
-                "title": s.title,
-                "product_items": [_serialize(p) for p in s.product_items],
-            })
+            sections.append(
+                {
+                    "title": s.title,
+                    "product_items": [_serialize(p) for p in s.product_items],
+                }
+            )
 
         action = {"catalog_id": input.catalog_id, "sections": sections}
         header = _serialize(input.header) if input.header else None
@@ -289,9 +291,7 @@ class MessagesResource:
 
     # ── interactive: flow ────────────────────────────────────────
 
-    async def send_interactive_flow(
-        self, input: InteractiveFlowMessage
-    ) -> SendMessageResponse:
+    async def send_interactive_flow(self, input: InteractiveFlowMessage) -> SendMessageResponse:
         header = None
         if input.header:
             header = _serialize(input.header)
@@ -378,6 +378,44 @@ class MessagesResource:
             biz_opaque_callback_data=input.biz_opaque_callback_data,
         )
 
+    # ── interactive: address ────────────────────────────────────
+
+    async def send_interactive_address(
+        self, input: InteractiveAddressMessage
+    ) -> SendMessageResponse:
+        params = _serialize(input.parameters)
+        action = {"name": "address_message", "parameters": params}
+        return await self._send_interactive(
+            "address_message",
+            input.phone_number_id,
+            input.to,
+            action,
+            body_text=input.body_text,
+            footer_text=input.footer_text,
+            recipient_type=input.recipient_type,
+            context_message_id=input.context_message_id,
+            biz_opaque_callback_data=input.biz_opaque_callback_data,
+        )
+
+    # ── interactive: call permission ─────────────────────────────
+
+    async def send_interactive_call_permission(
+        self, input: InteractiveCallPermissionMessage
+    ) -> SendMessageResponse:
+        params = _serialize(input.parameters)
+        action = {"name": "call_permission", "parameters": params}
+        return await self._send_interactive(
+            "call_permission",
+            input.phone_number_id,
+            input.to,
+            action,
+            body_text=input.body_text,
+            footer_text=input.footer_text,
+            recipient_type=input.recipient_type,
+            context_message_id=input.context_message_id,
+            biz_opaque_callback_data=input.biz_opaque_callback_data,
+        )
+
     # ── interactive: raw ─────────────────────────────────────────
 
     async def send_interactive_raw(
@@ -403,6 +441,14 @@ class MessagesResource:
             body["biz_opaque_callback_data"] = biz_opaque_callback_data
 
         resp = await self._client.post(f"{phone_number_id}/messages", json=body)
+        return SendMessageResponse.model_validate(resp)
+
+    # ── raw ──────────────────────────────────────────────────────
+
+    async def send_raw(self, input: RawMessage) -> SendMessageResponse:
+        """Send an arbitrary payload directly to the Messages API."""
+        body = {"messaging_product": "whatsapp", **input.payload}
+        resp = await self._client.post(f"{input.phone_number_id}/messages", json=body)
         return SendMessageResponse.model_validate(resp)
 
     # ── mark read ────────────────────────────────────────────────
