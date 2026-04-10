@@ -328,6 +328,49 @@ class InteractiveCatalogMessage(BaseMessage):
     parameters: CatalogParameters | None = None
 
 
+# ── Interactive address ──────────────────────────────────────────────
+
+
+class SavedAddress(BaseModel):
+    id: str
+    value: dict[str, Any] | None = None
+
+
+class AddressParameters(BaseModel):
+    country: str
+    values: dict[str, Any] | None = None
+    saved_addresses: list[SavedAddress] | None = None
+    validation_errors: dict[str, Any] | None = None
+
+
+class InteractiveAddressMessage(BaseMessage):
+    body_text: str
+    footer_text: str | None = Field(None, max_length=60)
+    parameters: AddressParameters
+
+
+# ── Interactive call permission ─────────────────────────────────────
+
+
+class CallPermissionParameters(BaseModel):
+    phone_number: str
+    call_purpose: str | None = None
+
+
+class InteractiveCallPermissionMessage(BaseMessage):
+    body_text: str | None = None
+    footer_text: str | None = Field(None, max_length=60)
+    parameters: CallPermissionParameters
+
+
+# ── Raw message (arbitrary payload) ─────────────────────────────────
+
+
+class RawMessage(BaseModel):
+    phone_number_id: str
+    payload: dict[str, Any]
+
+
 # ── Mark read ────────────────────────────────────────────────────────
 
 

@@ -2,12 +2,29 @@
 
 from __future__ import annotations
 
+import hashlib
+import json as json_mod
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from ..client import WhatsAppClient
+
+
+def _canonicalize(value: Any) -> Any:
+    """Sort object keys recursively for deterministic hashing."""
+    if isinstance(value, dict):
+        return {k: _canonicalize(v) for k, v in sorted(value.items())}
+    if isinstance(value, list):
+        return [_canonicalize(item) for item in value]
+    return value
+
+
+def _compute_flow_hash(flow_json: dict[str, Any]) -> str:
+    """SHA-256 hash of canonicalized flow JSON."""
+    canonical = json_mod.dumps(_canonicalize(flow_json), separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
 
 
 # ── Input models ─────────────────────────────────────────────────────
@@ -51,16 +68,18 @@ class DeployFlowInput(BaseModel):
     publish: bool = False
     flow_id: str | None = None
     categories: list[str] | None = None
+    force_asset_upload: bool = False
 
 
 # ── Resource ─────────────────────────────────────────────────────────
 
 
 class FlowsResource:
-    __slots__ = ("_client",)
+    __slots__ = ("_client", "_deploy_hashes")
 
     def __init__(self, client: WhatsAppClient) -> None:
         self._client = client
+        self._deploy_hashes: dict[str, str] = {}
 
     async def create(self, input: CreateFlowInput) -> dict[str, Any]:
         import json as json_mod
@@ -132,11 +151,25 @@ class FlowsResource:
         return await self._client.get(f"{waba_id}/flows", params=params or None)
 
     async def deploy(self, input: DeployFlowInput) -> dict[str, Any]:
-        """Idempotent deploy: create-or-update + optional publish."""
+        """Idempotent deploy: create-or-update + optional publish.
+
+        Uses SHA-256 hash caching to skip asset uploads when the flow JSON
+        hasn't changed since the last deploy (per client instance).
+        Pass ``force_asset_upload=True`` to bypass the cache.
+        """
+        cache_key = f"{input.waba_id}::{input.name}"
+        current_hash = _compute_flow_hash(input.flow_json)
+
         if input.flow_id:
-            result = await self.update_asset(
-                UpdateFlowAssetInput(flow_id=input.flow_id, json_data=input.flow_json)
-            )
+            # Check cache — skip upload if unchanged
+            last_hash = self._deploy_hashes.get(cache_key)
+            if last_hash == current_hash and not input.force_asset_upload:
+                result: dict[str, Any] = {}
+            else:
+                result = await self.update_asset(
+                    UpdateFlowAssetInput(flow_id=input.flow_id, json_data=input.flow_json)
+                )
+                self._deploy_hashes[cache_key] = current_hash
         else:
             result = await self.create(
                 CreateFlowInput(
@@ -148,6 +181,7 @@ class FlowsResource:
                     publish=False,
                 )
             )
+            self._deploy_hashes[cache_key] = current_hash
 
         flow_id = input.flow_id or result.get("id", "")
 
