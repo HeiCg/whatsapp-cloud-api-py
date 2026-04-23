@@ -38,6 +38,13 @@ Thumbs.db
 .claude/
 CLAUDE.md
 
+# Local tooling / background state
+.bg-shell/
+.gsd
+
+# Upstream JS package snapshots
+*.tgz
+
 # Environment variables
 .env
 .env.local
