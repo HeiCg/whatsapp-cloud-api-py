@@ -131,6 +131,37 @@ class TestDownload:
         assert cdn_route.call_count == 2
 
     @respx.mock
+    async def test_download_prefers_download_url_over_url(self):
+        meta_url = "https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid=MEDIA_ID"
+        kapso_download_url = "https://api.kapso.ai/meta/whatsapp/media_download?token=abc123"
+        respx.get(f"{BASE}/media123").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "messaging_product": "whatsapp",
+                    "url": meta_url,
+                    "download_url": kapso_download_url,
+                    "mime_type": "image/jpeg",
+                    "sha256": "hash",
+                    "file_size": "4",
+                    "id": "media123",
+                },
+            )
+        )
+        kapso_route = respx.get(kapso_download_url).mock(
+            return_value=httpx.Response(200, content=b"\x07\x07\x07\x07")
+        )
+        meta_route = respx.get(meta_url).mock(
+            return_value=httpx.Response(200, content=b"should-not-be-called")
+        )
+        async with WhatsAppClient(access_token="tok") as client:
+            resource = MediaResource(client)
+            data = await resource.download("media123")
+        assert data == b"\x07\x07\x07\x07"
+        assert kapso_route.called
+        assert not meta_route.called
+
+    @respx.mock
     async def test_download_with_use_auth(self):
         cdn_url = "https://cdn.example.com/media/file.jpg"
         respx.get(f"{BASE}/media123").mock(

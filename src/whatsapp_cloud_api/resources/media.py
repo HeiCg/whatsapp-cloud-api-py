@@ -65,20 +65,21 @@ class MediaResource:
             auth = "always" if use_auth else "auto"
 
         meta = await self.get(media_id)
+        target_url = meta.download_url or meta.url
 
         if auth == "never":
-            resp = await self._client.fetch_raw(meta.url)
+            resp = await self._client.fetch_raw(target_url)
             resp.raise_for_status()
             return resp.content
 
         if auth == "always":
-            resp = await self._client.fetch_authenticated(meta.url)
+            resp = await self._client.fetch_authenticated(target_url)
             resp.raise_for_status()
             return resp.content
 
         # auth == "auto": try raw, retry with auth on 401/403
-        resp = await self._client.fetch_raw(meta.url)
+        resp = await self._client.fetch_raw(target_url)
         if resp.status_code in (401, 403):
-            resp = await self._client.fetch_authenticated(meta.url)
+            resp = await self._client.fetch_authenticated(target_url)
         resp.raise_for_status()
         return resp.content

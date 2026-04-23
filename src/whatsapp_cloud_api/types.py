@@ -65,6 +65,8 @@ class MediaUploadResponse(CamelModel):
 class MediaMetadata(CamelModel):
     messaging_product: Literal["whatsapp"] = "whatsapp"
     url: str
+    download_url: str | None = None
+    download_url_expires_at: str | None = None
     mime_type: str
     sha256: str
     file_size: str
