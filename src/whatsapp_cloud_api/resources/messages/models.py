@@ -195,10 +195,44 @@ class TemplateLanguage(BaseModel):
 
 
 class TemplateComponent(BaseModel):
+    # extra="forbid": an unknown field (e.g. a misspelled/dropped `cards`) is a
+    # validation error instead of being silently ignored and lost on the wire.
+    model_config = ConfigDict(extra="forbid")
+
     type: str
     sub_type: str | None = None
     index: int | None = None
     parameters: list[dict[str, Any]] = []
+    cards: list[TemplateCarouselCard] | None = None
+
+    @model_validator(mode="after")
+    def _validate_carousel(self) -> TemplateComponent:
+        if self.type == "carousel":
+            if not self.cards:
+                raise ValueError("carousel component requires a non-empty 'cards' array")
+        elif self.cards is not None:
+            raise ValueError("'cards' is only allowed on carousel components")
+        return self
+
+
+class TemplateCarouselCard(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    card_index: int = Field(ge=0)
+    components: list[TemplateComponent] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _forbid_nested_carousel(self) -> TemplateCarouselCard:
+        for component in self.components:
+            if component.type == "carousel":
+                raise ValueError(
+                    "'carousel' is not supported inside carousel cards"
+                )
+        return self
+
+
+# Resolve the forward reference between TemplateComponent and TemplateCarouselCard.
+TemplateComponent.model_rebuild()
 
 
 class TemplatePayload(BaseModel):

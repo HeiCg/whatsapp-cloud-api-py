@@ -24,6 +24,10 @@ from whatsapp_cloud_api.resources.messages.models import (
     MarkReadInput,
     MediaById,
     MediaByLink,
+    TemplateComponent,
+    TemplateLanguage,
+    TemplateMessage,
+    TemplatePayload,
     TextMessage,
 )
 from whatsapp_cloud_api.resources.messages.resource import MessagesResource
@@ -382,3 +386,70 @@ class TestSendInteractiveCarousel:
             {"type": "quick_reply", "quick_reply": {"id": "first_yes", "title": "Yes"}},
             {"type": "quick_reply", "quick_reply": {"id": "first_no", "title": "No"}},
         ]
+
+
+class TestSendTemplateCarousel:
+    @respx.mock
+    async def test_carousel_cards_reach_wire(self):
+        route = respx.post(MSG_URL).mock(
+            return_value=httpx.Response(200, json=SEND_RESPONSE)
+        )
+        async with WhatsAppClient(access_token="tok") as client:
+            resource = MessagesResource(client)
+            await resource.send_template(
+                TemplateMessage(
+                    phone_number_id=PHONE,
+                    to="5511999999999",
+                    template=TemplatePayload(
+                        name="flight_options_carousel_v1_2",
+                        language=TemplateLanguage(code="pt_BR"),
+                        components=[
+                            TemplateComponent(
+                                type="carousel",
+                                cards=[
+                                    {
+                                        "card_index": 0,
+                                        "components": [
+                                            {
+                                                "type": "header",
+                                                "parameters": [
+                                                    {
+                                                        "type": "image",
+                                                        "image": {
+                                                            "link": "https://example.com/a.jpg"
+                                                        },
+                                                    }
+                                                ],
+                                            },
+                                            {
+                                                "type": "body",
+                                                "parameters": [
+                                                    {"type": "text", "text": "12.000,00"}
+                                                ],
+                                            },
+                                            {
+                                                "type": "button",
+                                                "sub_type": "quick_reply",
+                                                "index": 0,
+                                                "parameters": [
+                                                    {"type": "payload", "payload": "OPT_1"}
+                                                ],
+                                            },
+                                        ],
+                                    }
+                                ],
+                            )
+                        ],
+                    ),
+                )
+            )
+        import json
+
+        sent = json.loads(route.calls[0].request.content)
+        components = sent["template"]["components"]
+        assert components[0]["type"] == "carousel"
+        cards = components[0]["cards"]
+        assert cards[0]["card_index"] == 0
+        assert cards[0]["components"][0]["type"] == "header"
+        assert cards[0]["components"][2]["sub_type"] == "quick_reply"
+        assert cards[0]["components"][2]["parameters"][0]["payload"] == "OPT_1"

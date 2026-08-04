@@ -19,6 +19,8 @@ from whatsapp_cloud_api.resources.messages.models import (
     LocationPayload,
     MediaById,
     MediaByLink,
+    TemplateCarouselCard,
+    TemplateComponent,
     TextMessage,
 )
 
@@ -384,3 +386,62 @@ class TestInteractiveCarouselModel:
     def test_rejects_non_http_cta_url(self):
         with pytest.raises(ValidationError):
             CarouselCardCtaAction(display_text="V", url="ftp://example.com")
+
+
+class TestTemplateCarouselComponent:
+    def test_valid_carousel_component(self):
+        comp = TemplateComponent(
+            type="carousel",
+            cards=[
+                TemplateCarouselCard(
+                    card_index=0,
+                    components=[TemplateComponent(type="header", parameters=[])],
+                )
+            ],
+        )
+        assert comp.cards[0].card_index == 0
+
+    def test_carousel_requires_cards(self):
+        with pytest.raises(ValidationError, match="non-empty 'cards'"):
+            TemplateComponent(type="carousel")
+
+    def test_carousel_rejects_empty_cards(self):
+        with pytest.raises(ValidationError, match="non-empty 'cards'"):
+            TemplateComponent(type="carousel", cards=[])
+
+    def test_cards_forbidden_on_non_carousel(self):
+        with pytest.raises(ValidationError, match="only allowed on carousel"):
+            TemplateComponent(
+                type="body",
+                cards=[
+                    TemplateCarouselCard(
+                        card_index=0,
+                        components=[TemplateComponent(type="header")],
+                    )
+                ],
+            )
+
+    def test_nested_carousel_rejected(self):
+        with pytest.raises(ValidationError, match="not supported inside carousel"):
+            TemplateCarouselCard(
+                card_index=0,
+                components=[
+                    TemplateComponent(
+                        type="carousel",
+                        cards=[
+                            TemplateCarouselCard(
+                                card_index=0,
+                                components=[TemplateComponent(type="header")],
+                            )
+                        ],
+                    )
+                ],
+            )
+
+    def test_unknown_field_rejected(self):
+        with pytest.raises(ValidationError):
+            TemplateComponent(type="body", bogus="x")
+
+    def test_card_requires_components(self):
+        with pytest.raises(ValidationError):
+            TemplateCarouselCard(card_index=0, components=[])
