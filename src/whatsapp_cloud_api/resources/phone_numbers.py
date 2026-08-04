@@ -56,9 +56,7 @@ class BusinessProfileSubResource:
     def __init__(self, client: WhatsAppClient) -> None:
         self._client = client
 
-    async def get(
-        self, phone_number_id: str, fields: str | None = None
-    ) -> BusinessProfileResponse:
+    async def get(self, phone_number_id: str, fields: str | None = None) -> BusinessProfileResponse:
         # Behavior change (0.3.0): with no `fields`, send NO query param and let
         # Meta pick its default set — matches the JS lib. Callers that relied on
         # the old fixed list must now pass it explicitly via `fields=`.

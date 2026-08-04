@@ -20,6 +20,7 @@ def _validate_http_url(value: str) -> str:
         raise ValueError("must be a valid http(s) URL")
     return value
 
+
 # ── Base ─────────────────────────────────────────────────────────────
 
 
@@ -225,9 +226,7 @@ class TemplateCarouselCard(BaseModel):
     def _forbid_nested_carousel(self) -> TemplateCarouselCard:
         for component in self.components:
             if component.type == "carousel":
-                raise ValueError(
-                    "'carousel' is not supported inside carousel cards"
-                )
+                raise ValueError("'carousel' is not supported inside carousel cards")
         return self
 
 

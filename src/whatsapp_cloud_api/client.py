@@ -131,9 +131,7 @@ class WhatsAppClient:
     async def delete(self, path: str, *, params: dict[str, Any] | None = None) -> Any:
         return await self.request("DELETE", path, params=params)
 
-    async def fetch_raw(
-        self, url: str, *, headers: dict[str, str] | None = None
-    ) -> httpx.Response:
+    async def fetch_raw(self, url: str, *, headers: dict[str, str] | None = None) -> httpx.Response:
         """Fetch a URL without attaching auth headers (e.g., WhatsApp CDN)."""
         return await self._http.get(url, headers=headers or {})
 
