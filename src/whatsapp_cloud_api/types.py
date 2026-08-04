@@ -106,6 +106,7 @@ class TemplateDeleteResponse(CamelModel):
 
 
 class BusinessProfile(CamelModel):
+    id: str | None = None
     about: str | None = None
     address: str | None = None
     description: str | None = None
@@ -114,6 +115,7 @@ class BusinessProfile(CamelModel):
     websites: list[str] | None = None
     vertical: str | None = None
     messaging_product: str | None = None
+    account_name: str | None = None
 
 
 class BusinessProfileResponse(CamelModel):

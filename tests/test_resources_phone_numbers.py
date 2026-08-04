@@ -116,6 +116,32 @@ class TestBusinessProfileSubResource:
         assert route.calls[0].request.url.query == b""
 
     @respx.mock
+    async def test_get_deserializes_id_and_account_name(self):
+        route = respx.get(f"{BASE}/{PHONE}/whatsapp_business_profile").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "data": [
+                        {
+                            "id": "profile-123",
+                            "messagingProduct": "whatsapp",
+                            "accountName": "Acme Corp",
+                            "about": "Hi",
+                        }
+                    ]
+                },
+            )
+        )
+        async with WhatsAppClient(access_token="tok") as client:
+            resource = PhoneNumbersResource(client)
+            result = await resource.business_profile.get(PHONE)
+        assert route.called
+        profile = result.data[0]
+        assert profile.id == "profile-123"
+        assert profile.messaging_product == "whatsapp"
+        assert profile.account_name == "Acme Corp"
+
+    @respx.mock
     async def test_get_with_fields(self):
         route = respx.get(f"{BASE}/{PHONE}/whatsapp_business_profile").mock(
             return_value=httpx.Response(200, json={"data": [{"about": "X"}]})
