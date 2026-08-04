@@ -112,6 +112,18 @@ class TestBusinessProfileSubResource:
         assert len(result.data) == 1
         assert result.data[0].about == "Test business"
         assert route.called
+        # No fields -> no query param at all (Meta default applies)
+        assert route.calls[0].request.url.query == b""
+
+    @respx.mock
+    async def test_get_with_fields(self):
+        route = respx.get(f"{BASE}/{PHONE}/whatsapp_business_profile").mock(
+            return_value=httpx.Response(200, json={"data": [{"about": "X"}]})
+        )
+        async with WhatsAppClient(access_token="tok") as client:
+            resource = PhoneNumbersResource(client)
+            await resource.business_profile.get(PHONE, fields="about,email")
+        assert dict(route.calls[0].request.url.params) == {"fields": "about,email"}
 
     @respx.mock
     async def test_update(self):
