@@ -421,8 +421,8 @@ def main() -> None:
 
             api_surface = generate_api_surface(js_src, py_src)
             if not api_surface:
-                print("ERROR: Failed to generate API surface. Will retry next run.")
-                return
+                print("ERROR: Failed to generate API surface (LLM parse failed).")
+                sys.exit(1)
 
             print(f"API surface generated: {len(json.dumps(api_surface))} bytes")
 
@@ -471,8 +471,8 @@ def main() -> None:
         analysis = analyze_diff_against_surface(api_surface, js_diff, js_commits)
 
         if analysis is None:
-            print("Analysis failed. Will retry next run.")
-            return
+            print("ERROR: Analysis failed (LLM returned invalid JSON).")
+            sys.exit(1)
 
         # Update cached surface with any structural changes
         surface_updates = analysis.get("surface_updates", [])
