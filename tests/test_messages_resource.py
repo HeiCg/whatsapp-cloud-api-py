@@ -7,10 +7,16 @@ import respx
 
 from whatsapp_cloud_api.client import WhatsAppClient
 from whatsapp_cloud_api.resources.messages.models import (
+    CarouselCard,
+    CarouselCardCtaAction,
+    CarouselCardQuickReplyAction,
+    CarouselImageHeader,
+    CarouselVideoHeader,
     CatalogParameters,
     ImageMessage,
     InteractiveButton,
     InteractiveButtonsMessage,
+    InteractiveCarouselMessage,
     InteractiveCatalogMessage,
     InteractiveListMessage,
     ListRow,
@@ -258,3 +264,121 @@ class TestMarkRead:
         assert sent["status"] == "read"
         assert sent["message_id"] == "wamid.1"
         assert result == {"success": True}
+
+
+class TestSendInteractiveCarousel:
+    @respx.mock
+    async def test_cta_url_wire(self):
+        route = respx.post(MSG_URL).mock(
+            return_value=httpx.Response(200, json=SEND_RESPONSE)
+        )
+        async with WhatsAppClient(access_token="tok") as client:
+            resource = MessagesResource(client)
+            await resource.send_interactive_carousel(
+                InteractiveCarouselMessage(
+                    phone_number_id=PHONE,
+                    to="5511999999999",
+                    body_text="Choose an option",
+                    cards=[
+                        CarouselCard(
+                            card_index=0,
+                            header=CarouselImageHeader(
+                                type="image",
+                                image={"link": "https://example.com/one.jpg"},
+                            ),
+                            body_text="First card",
+                            action=CarouselCardCtaAction(
+                                display_text="View", url="https://example.com/one"
+                            ),
+                        ),
+                        CarouselCard(
+                            card_index=1,
+                            header=CarouselVideoHeader(
+                                type="video",
+                                video={"link": "https://example.com/two.mp4"},
+                            ),
+                            action=CarouselCardCtaAction(
+                                display_text="View", url="https://example.com/two"
+                            ),
+                        ),
+                    ],
+                )
+            )
+        import json
+
+        sent = json.loads(route.calls[0].request.content)
+        interactive = sent["interactive"]
+        assert interactive["type"] == "carousel"
+        assert interactive["body"] == {"text": "Choose an option"}
+        cards = interactive["action"]["cards"]
+        assert cards[0] == {
+            "card_index": 0,
+            "type": "cta_url",
+            "header": {"type": "image", "image": {"link": "https://example.com/one.jpg"}},
+            "body": {"text": "First card"},
+            "action": {
+                "name": "cta_url",
+                "parameters": {
+                    "display_text": "View",
+                    "url": "https://example.com/one",
+                },
+            },
+        }
+        # Second card has no body_text -> no "body" key
+        assert "body" not in cards[1]
+        assert cards[1]["header"] == {
+            "type": "video",
+            "video": {"link": "https://example.com/two.mp4"},
+        }
+
+    @respx.mock
+    async def test_quick_reply_wire(self):
+        route = respx.post(MSG_URL).mock(
+            return_value=httpx.Response(200, json=SEND_RESPONSE)
+        )
+        async with WhatsAppClient(access_token="tok") as client:
+            resource = MessagesResource(client)
+            await resource.send_interactive_carousel(
+                InteractiveCarouselMessage(
+                    phone_number_id=PHONE,
+                    to="5511999999999",
+                    body_text="Choose an option",
+                    cards=[
+                        CarouselCard(
+                            card_index=0,
+                            header=CarouselImageHeader(
+                                type="image",
+                                image={"link": "https://example.com/one.jpg"},
+                            ),
+                            action=CarouselCardQuickReplyAction(
+                                buttons=[
+                                    InteractiveButton(id="first_yes", title="Yes"),
+                                    InteractiveButton(id="first_no", title="No"),
+                                ]
+                            ),
+                        ),
+                        CarouselCard(
+                            card_index=1,
+                            header=CarouselImageHeader(
+                                type="image",
+                                image={"link": "https://example.com/two.jpg"},
+                            ),
+                            action=CarouselCardQuickReplyAction(
+                                buttons=[
+                                    InteractiveButton(id="second_yes", title="Yes"),
+                                    InteractiveButton(id="second_no", title="No"),
+                                ]
+                            ),
+                        ),
+                    ],
+                )
+            )
+        import json
+
+        sent = json.loads(route.calls[0].request.content)
+        cards = sent["interactive"]["action"]["cards"]
+        assert cards[0]["type"] == "cta_url"  # JS stamps cta_url even for quick_reply
+        assert cards[0]["action"]["buttons"] == [
+            {"type": "quick_reply", "quick_reply": {"id": "first_yes", "title": "Yes"}},
+            {"type": "quick_reply", "quick_reply": {"id": "first_no", "title": "No"}},
+        ]

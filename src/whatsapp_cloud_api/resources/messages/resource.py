@@ -7,12 +7,14 @@ from typing import TYPE_CHECKING, Any
 from ...types import SendMessageResponse
 from .models import (
     AudioMessage,
+    CarouselCardCtaAction,
     ContactsMessage,
     DocumentMessage,
     ImageMessage,
     InteractiveAddressMessage,
     InteractiveButtonsMessage,
     InteractiveCallPermissionMessage,
+    InteractiveCarouselMessage,
     InteractiveCatalogMessage,
     InteractiveCtaUrlMessage,
     InteractiveFlowMessage,
@@ -333,6 +335,54 @@ class MessagesResource:
             body_text=input.body_text,
             footer_text=input.footer_text,
             header=header,
+            recipient_type=input.recipient_type,
+            context_message_id=input.context_message_id,
+            biz_opaque_callback_data=input.biz_opaque_callback_data,
+        )
+
+    # ── interactive: carousel ────────────────────────────────────
+
+    async def send_interactive_carousel(
+        self, input: InteractiveCarouselMessage
+    ) -> SendMessageResponse:
+        cards: list[dict[str, Any]] = []
+        for card in input.cards:
+            card_payload: dict[str, Any] = {
+                "card_index": card.card_index,
+                # JS always stamps "cta_url" on the card, even for quick_reply.
+                "type": "cta_url",
+                "header": _serialize(card.header),
+            }
+            if card.body_text:
+                card_payload["body"] = {"text": card.body_text}
+
+            if isinstance(card.action, CarouselCardCtaAction):
+                card_payload["action"] = {
+                    "name": "cta_url",
+                    "parameters": {
+                        "display_text": card.action.display_text,
+                        "url": card.action.url,
+                    },
+                }
+            else:
+                card_payload["action"] = {
+                    "buttons": [
+                        {
+                            "type": "quick_reply",
+                            "quick_reply": {"id": b.id, "title": b.title},
+                        }
+                        for b in card.action.buttons
+                    ]
+                }
+            cards.append(card_payload)
+
+        action = {"cards": cards}
+        return await self._send_interactive(
+            "carousel",
+            input.phone_number_id,
+            input.to,
+            action,
+            body_text=input.body_text,
             recipient_type=input.recipient_type,
             context_message_id=input.context_message_id,
             biz_opaque_callback_data=input.biz_opaque_callback_data,

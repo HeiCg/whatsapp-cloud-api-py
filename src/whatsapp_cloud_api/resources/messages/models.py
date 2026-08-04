@@ -2,9 +2,23 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Literal
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+def _validate_http_url(value: str) -> str:
+    """Validate a string is an http/https URL without changing its type.
+
+    Mirrors the JS ``z.string().url()`` intent while keeping the field a plain
+    ``str`` on the wire (no ``HttpUrl`` coercion / trailing-slash rewrites).
+    """
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError("must be a valid http(s) URL")
+    return value
 
 # ── Base ─────────────────────────────────────────────────────────────
 
@@ -301,6 +315,107 @@ class InteractiveCtaUrlMessage(BaseMessage):
     header: InteractiveHeader | None = None
     footer_text: str | None = None
     parameters: CtaUrlParameters
+
+
+# ── Interactive carousel ─────────────────────────────────────────────
+
+_CAROUSEL_MAX_CARD_BODY_CHARS = 160
+_CAROUSEL_MAX_CARD_BODY_LINE_BREAKS = 2
+_CAROUSEL_LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
+
+
+class CarouselHeaderMediaRef(BaseModel):
+    id: str | None = None
+    link: str | None = None
+
+    @model_validator(mode="after")
+    def _require_id_or_link(self) -> CarouselHeaderMediaRef:
+        if not (self.id or self.link):
+            raise ValueError("header media requires either id or link")
+        return self
+
+
+class CarouselImageHeader(BaseModel):
+    type: Literal["image"] = "image"
+    image: CarouselHeaderMediaRef
+
+
+class CarouselVideoHeader(BaseModel):
+    type: Literal["video"] = "video"
+    video: CarouselHeaderMediaRef
+
+
+class CarouselCardCtaAction(BaseModel):
+    """CTA-URL action for a carousel card (mirrors the JS cta_url action)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_text: str = Field(min_length=1, max_length=20)
+    url: str
+
+    _check_url = field_validator("url")(_validate_http_url)
+
+
+class CarouselCardQuickReplyAction(BaseModel):
+    """Quick-reply action for a carousel card (reuses the reply button model)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    buttons: list[InteractiveButton] = Field(min_length=1)
+
+
+class CarouselCard(BaseModel):
+    card_index: int = Field(ge=0)
+    header: CarouselImageHeader | CarouselVideoHeader
+    body_text: str | None = Field(default=None, max_length=_CAROUSEL_MAX_CARD_BODY_CHARS)
+    action: CarouselCardCtaAction | CarouselCardQuickReplyAction
+
+    @field_validator("body_text")
+    @classmethod
+    def _check_body_line_breaks(cls, value: str | None) -> str | None:
+        if value is not None:
+            breaks = len(_CAROUSEL_LINE_BREAK_RE.findall(value))
+            if breaks > _CAROUSEL_MAX_CARD_BODY_LINE_BREAKS:
+                raise ValueError(
+                    f"card body_text must include at most "
+                    f"{_CAROUSEL_MAX_CARD_BODY_LINE_BREAKS} line breaks"
+                )
+        return value
+
+
+class InteractiveCarouselMessage(BaseMessage):
+    body_text: str = Field(min_length=1, max_length=1024)
+    cards: list[CarouselCard] = Field(min_length=2, max_length=10)
+
+    @model_validator(mode="after")
+    def _validate_cards(self) -> InteractiveCarouselMessage:
+        # 1. card_index must cover exactly 0..n-1 (mirrors the JS sorted check)
+        actual = sorted(card.card_index for card in self.cards)
+        if actual != list(range(len(self.cards))):
+            raise ValueError("card_index values must be sequential from 0")
+
+        # 2. homogeneous action structure across all cards
+        def _signature(card: CarouselCard) -> str:
+            if isinstance(card.action, CarouselCardCtaAction):
+                return "cta_url"
+            return f"quick_reply:{len(card.action.buttons)}"
+
+        first_signature = _signature(self.cards[0])
+        for card in self.cards:
+            if _signature(card) != first_signature:
+                raise ValueError("All carousel cards must use the same button structure")
+
+        # 3. quick-reply ids unique across all cards
+        quick_reply_ids = [
+            button.id
+            for card in self.cards
+            if isinstance(card.action, CarouselCardQuickReplyAction)
+            for button in card.action.buttons
+        ]
+        if len(set(quick_reply_ids)) != len(quick_reply_ids):
+            raise ValueError("quick reply button ids must be unique across carousel cards")
+
+        return self
 
 
 # ── Interactive location request ─────────────────────────────────────
