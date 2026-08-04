@@ -207,6 +207,42 @@ await client.messages.send_template(TemplateMessage(
 ))
 ```
 
+#### Carousel template
+
+A `carousel` component carries per-card `components`. Pass them via
+`TemplateComponent(type="carousel", cards=[TemplateCarouselCard(...)])` — the
+`cards` field is required for carousel components and rejected on any other
+component type (a nested carousel inside a card is also rejected).
+
+```python
+from whatsapp_cloud_api.resources.messages import (
+    TemplateComponent, TemplateCarouselCard,
+)
+
+await client.messages.send_template(TemplateMessage(
+    phone_number_id="PHONE_ID",
+    to="5511999999999",
+    template=TemplatePayload(
+        name="flight_options_carousel",
+        language=TemplateLanguage(code="pt_BR"),
+        components=[
+            TemplateComponent(type="carousel", cards=[
+                TemplateCarouselCard(card_index=0, components=[
+                    TemplateComponent(type="header", parameters=[
+                        {"type": "image", "image": {"link": "https://example.com/a.jpg"}},
+                    ]),
+                    TemplateComponent(type="body", parameters=[
+                        {"type": "text", "text": "12.000,00"},
+                    ]),
+                    TemplateComponent(type="button", sub_type="quick_reply", index=0,
+                                      parameters=[{"type": "payload", "payload": "OPT_1"}]),
+                ]),
+            ]),
+        ],
+    ),
+))
+```
+
 ### Interactive Buttons
 
 ```python
@@ -260,6 +296,7 @@ await client.messages.send_interactive_flow(InteractiveFlowMessage(
         flow_id="FLOW_ID",
         flow_cta="Open Form",
         flow_action="navigate",
+        mode="draft",  # optional: "draft" | "published" (omit for the default)
     ),
 ))
 ```
@@ -275,6 +312,69 @@ await client.messages.send_interactive_cta_url(InteractiveCtaUrlMessage(
     to="5511999999999",
     body_text="Visit our website",
     parameters=CtaUrlParameters(display_text="Open", url="https://example.com"),
+))
+```
+
+### Interactive Carousel
+
+Send up to 10 cards, each with an image/video header and either a CTA-URL
+action or quick-reply buttons. All cards must share the same action structure
+(all CTA-URL, or all quick-reply with the same number of buttons), and
+`card_index` must run sequentially from 0.
+
+```python
+from whatsapp_cloud_api import InteractiveCarouselMessage
+from whatsapp_cloud_api.resources.messages import (
+    CarouselCard,
+    CarouselCardCtaAction,
+    CarouselCardQuickReplyAction,
+    CarouselImageHeader,
+    InteractiveButton,
+)
+
+# CTA-URL carousel
+await client.messages.send_interactive_carousel(InteractiveCarouselMessage(
+    phone_number_id="PHONE_ID",
+    to="5511999999999",
+    body_text="Choose a flight",
+    cards=[
+        CarouselCard(
+            card_index=0,
+            header=CarouselImageHeader(image={"link": "https://example.com/a.jpg"}),
+            body_text="Morning departure",
+            action=CarouselCardCtaAction(display_text="View", url="https://example.com/a"),
+        ),
+        CarouselCard(
+            card_index=1,
+            header=CarouselImageHeader(image={"link": "https://example.com/b.jpg"}),
+            action=CarouselCardCtaAction(display_text="View", url="https://example.com/b"),
+        ),
+    ],
+))
+
+# Quick-reply carousel (button ids must be unique across all cards)
+await client.messages.send_interactive_carousel(InteractiveCarouselMessage(
+    phone_number_id="PHONE_ID",
+    to="5511999999999",
+    body_text="Pick one",
+    cards=[
+        CarouselCard(
+            card_index=0,
+            header=CarouselImageHeader(image={"link": "https://example.com/a.jpg"}),
+            action=CarouselCardQuickReplyAction(buttons=[
+                InteractiveButton(id="a_yes", title="Yes"),
+                InteractiveButton(id="a_no", title="No"),
+            ]),
+        ),
+        CarouselCard(
+            card_index=1,
+            header=CarouselImageHeader(image={"link": "https://example.com/b.jpg"}),
+            action=CarouselCardQuickReplyAction(buttons=[
+                InteractiveButton(id="b_yes", title="Yes"),
+                InteractiveButton(id="b_no", title="No"),
+            ]),
+        ),
+    ],
 ))
 ```
 
@@ -368,7 +468,13 @@ await client.phone_numbers.register(RegisterInput(
 ))
 
 # Business profile
+# Behavior change in 0.3.0: get() no longer sends a hardcoded field list.
+# With no `fields`, Meta returns its default set; pass a comma-separated
+# string to select specific fields.
 profile = await client.phone_numbers.business_profile.get("PHONE_ID")
+profile = await client.phone_numbers.business_profile.get(
+    "PHONE_ID", fields="about,email,websites,vertical",
+)
 
 await client.phone_numbers.business_profile.update(UpdateBusinessProfileInput(
     phone_number_id="PHONE_ID",
