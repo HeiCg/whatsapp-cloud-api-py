@@ -1,4 +1,7 @@
-"""Tests for compatibility gap fixes: sendRaw, address, call_permission, media auth, flow caching."""
+"""Tests for compatibility gap fixes.
+
+Covers sendRaw, address, call_permission, media auth, and flow caching.
+"""
 
 from __future__ import annotations
 
