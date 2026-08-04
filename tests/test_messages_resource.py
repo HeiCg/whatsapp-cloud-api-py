@@ -13,11 +13,13 @@ from whatsapp_cloud_api.resources.messages.models import (
     CarouselImageHeader,
     CarouselVideoHeader,
     CatalogParameters,
+    FlowParameters,
     ImageMessage,
     InteractiveButton,
     InteractiveButtonsMessage,
     InteractiveCarouselMessage,
     InteractiveCatalogMessage,
+    InteractiveFlowMessage,
     InteractiveListMessage,
     ListRow,
     ListSection,
@@ -453,3 +455,49 @@ class TestSendTemplateCarousel:
         assert cards[0]["components"][0]["type"] == "header"
         assert cards[0]["components"][2]["sub_type"] == "quick_reply"
         assert cards[0]["components"][2]["parameters"][0]["payload"] == "OPT_1"
+
+
+class TestSendInteractiveFlow:
+    @respx.mock
+    async def test_mode_included_when_set(self):
+        route = respx.post(MSG_URL).mock(
+            return_value=httpx.Response(200, json=SEND_RESPONSE)
+        )
+        async with WhatsAppClient(access_token="tok") as client:
+            resource = MessagesResource(client)
+            await resource.send_interactive_flow(
+                InteractiveFlowMessage(
+                    phone_number_id=PHONE,
+                    to="5511999999999",
+                    body_text="Start flow",
+                    parameters=FlowParameters(
+                        flow_id="flow1", flow_cta="Open", mode="draft"
+                    ),
+                )
+            )
+        import json
+
+        sent = json.loads(route.calls[0].request.content)
+        params = sent["interactive"]["action"]["parameters"]
+        assert params["mode"] == "draft"
+
+    @respx.mock
+    async def test_mode_absent_when_unset(self):
+        route = respx.post(MSG_URL).mock(
+            return_value=httpx.Response(200, json=SEND_RESPONSE)
+        )
+        async with WhatsAppClient(access_token="tok") as client:
+            resource = MessagesResource(client)
+            await resource.send_interactive_flow(
+                InteractiveFlowMessage(
+                    phone_number_id=PHONE,
+                    to="5511999999999",
+                    body_text="Start flow",
+                    parameters=FlowParameters(flow_id="flow1", flow_cta="Open"),
+                )
+            )
+        import json
+
+        sent = json.loads(route.calls[0].request.content)
+        params = sent["interactive"]["action"]["parameters"]
+        assert "mode" not in params

@@ -324,6 +324,7 @@ class FlowParameters(BaseModel):
     flow_id: str
     flow_cta: str = Field(max_length=20)
     flow_message_version: str = "3"
+    mode: Literal["draft", "published"] | None = None
     flow_token: str | None = None
     flow_action: Literal["navigate", "data_exchange"] | None = None
     flow_action_payload: dict[str, Any] | None = None
